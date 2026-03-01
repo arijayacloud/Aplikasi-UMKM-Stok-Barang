@@ -13,71 +13,63 @@ function response($success, $data = [], $message = '') {
     exit;
 }
 
-switch ($action) {
-    case 'login':
-        $email = $_REQUEST['email'] ?? '';
-        $password = $_REQUEST['password'] ?? '';
-        $stmt = $db->prepare('SELECT * FROM users WHERE email = ?');
-        $stmt->execute([$email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$user) {
-            response(false, [], 'User not found');
-        }
-        if (!password_verify($password, $user['password'])) {
-            response(false, [], 'Password salah');
-        }
-        unset($user['password']);
-        response(true, ['user' => $user]);
-        break;
+try {
+    switch ($action) {
+        case 'login':
+            $email = $_REQUEST['email'] ?? '';
+            $password = $_REQUEST['password'] ?? '';
+            $stmt = $db->prepare('SELECT * FROM users WHERE email = ?');
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$user) {
+                response(false, [], 'User not found');
+            }
+            if (!password_verify($password, $user['password'])) {
+                response(false, [], 'Password salah');
+            }
+            unset($user['password']);
+            response(true, ['user' => $user]);
+            break;
 
-    case 'register':
-        $name = $_REQUEST['name'] ?? '';
-        $email = $_REQUEST['email'] ?? '';
-        $password = $_REQUEST['password'] ?? '';
-        $role = $_REQUEST['role'] ?? 'staff';
-        $outletId = $_REQUEST['outletId'] ?? null;
-        $id = (string)(time() . rand(10, 99));
-        
-        $stmt = $db->prepare('INSERT INTO users (id, name, email, password, role, outletId) VALUES (?, ?, ?, ?, ?, ?)');
-        try {
+        case 'register':
+            $name = $_REQUEST['name'] ?? '';
+            $email = $_REQUEST['email'] ?? '';
+            $password = $_REQUEST['password'] ?? '';
+            $role = $_REQUEST['role'] ?? 'staff';
+            $outletId = $_REQUEST['outletId'] ?? null;
+            $id = (string)(time() . rand(10, 99));
+            
+            $stmt = $db->prepare('INSERT INTO users (id, name, email, password, role, outletId) VALUES (?, ?, ?, ?, ?, ?)');
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt->execute([$id, $name, $email, $hashedPassword, $role, $outletId ?: null]);
             response(true, ['user' => ['id' => $id, 'name' => $name, 'email' => $email, 'role' => $role, 'outletId' => $outletId]]);
-        } catch (Exception $e) {
-            response(false, [], 'Registration failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'getOutlets':
-        $stmt = $db->query('SELECT id, name, address FROM outlets');
-        $outlets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($outlets as &$outlet) {
-            $stmtStock = $db->prepare('SELECT product_id, quantity FROM outlet_stock WHERE outlet_id = ?');
-            $stmtStock->execute([$outlet['id']]);
-            $stock = [];
-            foreach ($stmtStock->fetchAll(PDO::FETCH_ASSOC) as $s) {
-                $stock[$s['product_id']] = $s['quantity'];
+        case 'getOutlets':
+            $stmt = $db->query('SELECT id, name, address FROM outlets');
+            $outlets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($outlets as &$outlet) {
+                $stmtStock = $db->prepare('SELECT product_id, quantity FROM outlet_stock WHERE outlet_id = ?');
+                $stmtStock->execute([$outlet['id']]);
+                $stock = [];
+                foreach ($stmtStock->fetchAll(PDO::FETCH_ASSOC) as $s) {
+                    $stock[$s['product_id']] = $s['quantity'];
+                }
+                $outlet['stock'] = $stock;
             }
-            $outlet['stock'] = $stock;
-        }
-        response(true, ['outlets' => $outlets]);
-        break;
+            response(true, ['outlets' => $outlets]);
+            break;
 
-    case 'addOutlet':
-        $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
-        $stmt = $db->prepare('INSERT INTO outlets (id, name, address) VALUES (?, ?, ?)');
-        try {
+        case 'addOutlet':
+            $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
+            $stmt = $db->prepare('INSERT INTO outlets (id, name, address) VALUES (?, ?, ?)');
             $stmt->execute([$outlet['id'], $outlet['name'], $outlet['address'] ?? '']);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Add outlet failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'updateOutlet':
-        $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
-        $stmt = $db->prepare('UPDATE outlets SET name = ?, address = ? WHERE id = ?');
-        try {
+        case 'updateOutlet':
+            $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
+            $stmt = $db->prepare('UPDATE outlets SET name = ?, address = ? WHERE id = ?');
             $stmt->execute([$outlet['name'], $outlet['address'] ?? '', $outlet['id']]);
             if (isset($outlet['stock'])) {
                 $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ?')->execute([$outlet['id']]);
@@ -87,134 +79,97 @@ switch ($action) {
                 }
             }
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Update outlet failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'deleteOutlet':
-        $id = $_REQUEST['outletId'] ?? '';
-        try {
+        case 'deleteOutlet':
+            $id = $_REQUEST['outletId'] ?? '';
             $db->prepare('DELETE FROM outlets WHERE id = ?')->execute([$id]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Delete outlet failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'getProducts':
-        $stmt = $db->query('SELECT id, name, category, stockPusat, price FROM products');
-        response(true, ['products' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
-        break;
+        case 'getProducts':
+            $stmt = $db->query('SELECT id, name, category, stockPusat, price FROM products');
+            response(true, ['products' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
 
-    case 'addProduct':
-        $prod = json_decode($_REQUEST['product'] ?? '{}', true);
-        $stmt = $db->prepare('INSERT INTO products (id, name, category, stockPusat, price) VALUES (?, ?, ?, ?, ?)');
-        try {
+        case 'addProduct':
+            $prod = json_decode($_REQUEST['product'] ?? '{}', true);
+            $stmt = $db->prepare('INSERT INTO products (id, name, category, stockPusat, price) VALUES (?, ?, ?, ?, ?)');
             $stmt->execute([$prod['id'], $prod['name'], $prod['category'] ?? '', $prod['stockPusat'] ?? 0, $prod['price'] ?? 0]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Add product failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'updateProduct':
-        $prod = json_decode($_REQUEST['product'] ?? '{}', true);
-        $stmt = $db->prepare('UPDATE products SET name = ?, category = ?, stockPusat = ?, price = ? WHERE id = ?');
-        try {
+        case 'updateProduct':
+            $prod = json_decode($_REQUEST['product'] ?? '{}', true);
+            $stmt = $db->prepare('UPDATE products SET name = ?, category = ?, stockPusat = ?, price = ? WHERE id = ?');
             $stmt->execute([$prod['name'], $prod['category'] ?? '', $prod['stockPusat'] ?? 0, $prod['price'] ?? 0, $prod['id']]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Update product failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'deleteProduct':
-        $id = $_REQUEST['productId'] ?? '';
-        try {
+        case 'deleteProduct':
+            $id = $_REQUEST['productId'] ?? '';
             $db->prepare('DELETE FROM outlet_stock WHERE product_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM products WHERE id = ?')->execute([$id]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Delete product failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'deleteOutletStock':
-        $outletId = $_REQUEST['outletId'] ?? '';
-        $productId = $_REQUEST['productId'] ?? '';
-        try {
+        case 'deleteOutletStock':
+            $outletId = $_REQUEST['outletId'] ?? '';
+            $productId = $_REQUEST['productId'] ?? '';
             $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ? AND product_id = ?')
                ->execute([$outletId, $productId]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Delete outlet stock failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'getInvoices':
-        $stmt = $db->query('SELECT id, outlet_id as outletId, total_amount as totalAmount, is_paid as isPaid, created_at as date FROM invoices');
-        $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($invoices as &$inv) {
-            $inv['isPaid'] = (bool)$inv['isPaid'];
-            $itemStmt = $db->prepare('SELECT product_id as productId, product_name as productName, quantity, price FROM invoice_items WHERE invoice_id = ?');
-            $itemStmt->execute([$inv['id']]);
-            $inv['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-        response(true, ['invoices' => $invoices]);
-        break;
+        case 'getInvoices':
+            $stmt = $db->query('SELECT id, outlet_id as outletId, total_amount as totalAmount, is_paid as isPaid, created_at as date FROM invoices');
+            $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($invoices as &$inv) {
+                $inv['isPaid'] = (bool)$inv['isPaid'];
+                $itemStmt = $db->prepare('SELECT product_id as productId, product_name as productName, quantity, price FROM invoice_items WHERE invoice_id = ?');
+                $itemStmt->execute([$inv['id']]);
+                $inv['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            response(true, ['invoices' => $invoices]);
+            break;
 
-    case 'addPayment':
-        $pay = json_decode($_REQUEST['payment'] ?? '{}', true);
-        $proofImage = $pay['proofImage'] ?? null;
-        $fileName = null;
+        case 'addPayment':
+            $pay = json_decode($_REQUEST['payment'] ?? '{}', true);
+            $proofImage = $pay['proofImage'] ?? null;
+            $fileName = null;
 
-        if ($proofImage && $pay['paymentMethod'] === 'Transfer') {
-            // Ensure uploads directory exists
-            if (!is_dir('uploads')) {
-                mkdir('uploads', 0777, true);
+            if ($proofImage && $pay['paymentMethod'] === 'Transfer') {
+                if (!is_dir('uploads')) {
+                    mkdir('uploads', 0777, true);
+                }
+                $dateStr = date('Ymd_His');
+                $fileName = 'buktitf_' . $dateStr . '.jpg';
+                $filePath = 'uploads/' . $fileName;
+                $data = base64_decode($proofImage);
+                file_put_contents($filePath, $data);
             }
 
-            // Create filename: buktitf_tanggal_jam.jpg
-            $dateStr = date('Ymd_His');
-            $fileName = 'buktitf_' . $dateStr . '.jpg';
-            $filePath = 'uploads/' . $fileName;
-
-            // Save base64 to file
-            $data = base64_decode($proofImage);
-            file_put_contents($filePath, $data);
-        }
-
-        $stmt = $db->prepare('INSERT INTO payments (id, invoice_id, amount, payment_method, proof_image) VALUES (?, ?, ?, ?, ?)');
-        try {
+            $stmt = $db->prepare('INSERT INTO payments (id, invoice_id, amount, payment_method, proof_image) VALUES (?, ?, ?, ?, ?)');
             $stmt->execute([
                 $pay['id'] ?? (string)time(), 
                 $pay['invoiceId'] ?? '', 
                 $pay['amount'] ?? 0,
                 $pay['paymentMethod'] ?? 'Tunai',
-                $fileName // Store filename instead of base64
+                $fileName
             ]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Add payment failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'markInvoicePaid':
-        $id = $_REQUEST['invoiceId'] ?? '';
-        try {
+        case 'markInvoicePaid':
+            $id = $_REQUEST['invoiceId'] ?? '';
             $db->prepare('UPDATE invoices SET is_paid = 1 WHERE id = ?')->execute([$id]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Mark invoice failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'sendStock':
-        $outletId = $_REQUEST['outletId'] ?? '';
-        $productId = $_REQUEST['productId'] ?? '';
-        $qty = intval($_REQUEST['quantity'] ?? 0);
-        try {
+        case 'sendStock':
+            $outletId = $_REQUEST['outletId'] ?? '';
+            $productId = $_REQUEST['productId'] ?? '';
+            $qty = intval($_REQUEST['quantity'] ?? 0);
             $db->prepare('UPDATE products SET stockPusat = GREATEST(0, stockPusat - ?) WHERE id = ?')->execute([$qty, $productId]);
             $stmt = $db->prepare('INSERT INTO outlet_stock (outlet_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?');
             $stmt->execute([$outletId, $productId, $qty, $qty]);
@@ -222,44 +177,36 @@ switch ($action) {
             $db->prepare('INSERT INTO consignments (id, outlet_id, product_id, quantity, status) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$consId, $outletId, $productId, $qty, 'sent']);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Send stock failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'receiveStock':
-        $consignmentId = $_REQUEST['consignmentId'] ?? '';
-        $proofImage = $_REQUEST['proofImage'] ?? null;
-        $lat = $_REQUEST['latitude'] ?? null;
-        $lng = $_REQUEST['longitude'] ?? null;
-        $address = $_REQUEST['address'] ?? null;
-        $fileName = null;
+        case 'receiveStock':
+            $consignmentId = $_REQUEST['consignmentId'] ?? '';
+            $proofImage = $_REQUEST['proofImage'] ?? null;
+            $lat = $_REQUEST['latitude'] ?? null;
+            $lng = $_REQUEST['longitude'] ?? null;
+            $address = $_REQUEST['address'] ?? null;
+            $fileName = null;
 
-        if ($proofImage) {
-            if (!is_dir('uploads')) {
-                mkdir('uploads', 0777, true);
+            if ($proofImage) {
+                if (!is_dir('uploads')) {
+                    mkdir('uploads', 0777, true);
+                }
+                $dateStr = date('Ymd_His');
+                $fileName = 'buktircv_' . $dateStr . '.jpg';
+                $filePath = 'uploads/' . $fileName;
+                $data = base64_decode($proofImage);
+                file_put_contents($filePath, $data);
             }
-            $dateStr = date('Ymd_His');
-            $fileName = 'buktircv_' . $dateStr . '.jpg';
-            $filePath = 'uploads/' . $fileName;
-            $data = base64_decode($proofImage);
-            file_put_contents($filePath, $data);
-        }
 
-        try {
             $stmt = $db->prepare('UPDATE consignments SET status = "received", proof_image = ?, latitude = ?, longitude = ?, address = ?, received_at = NOW() WHERE id = ?');
             $stmt->execute([$fileName, $lat, $lng, $address, $consignmentId]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Receive stock failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'recordSale':
-        $outletId = $_REQUEST['outletId'] ?? '';
-        $productId = $_REQUEST['productId'] ?? '';
-        $qty = intval($_REQUEST['quantity'] ?? 0);
-        try {
+        case 'recordSale':
+            $outletId = $_REQUEST['outletId'] ?? '';
+            $productId = $_REQUEST['productId'] ?? '';
+            $qty = intval($_REQUEST['quantity'] ?? 0);
             $stmt = $db->prepare('UPDATE outlet_stock SET quantity = GREATEST(0, quantity - ?) WHERE outlet_id = ? AND product_id = ?');
             $stmt->execute([$qty, $outletId, $productId]);
             
@@ -276,54 +223,46 @@ switch ($action) {
                 ->execute([$invId, $productId, $prod['name'] ?? '', $qty, $prod['price'] ?? 0]);
             
             response(true, ['invoice' => ['id' => $invId, 'outletId' => $outletId, 'totalAmount' => $totalAmount, 'items' => [['productId' => $productId, 'productName' => $prod['name'] ?? '', 'quantity' => $qty, 'price' => $prod['price'] ?? 0]]]]);
-        } catch (Exception $e) {
-            response(false, [], 'Record sale failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'getConsignments':
-        $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, proof_image as proofImage, latitude, longitude, address, received_at as receivedAt, created_at as date FROM consignments');
-        response(true, ['consignments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
-        break;
+        case 'getConsignments':
+            $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, proof_image as proofImage, latitude, longitude, address, received_at as receivedAt, created_at as date FROM consignments');
+            response(true, ['consignments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
 
-    case 'getPayments':
-        $stmt = $db->query('SELECT id, invoice_id as invoiceId, amount, payment_method as paymentMethod, proof_image as proofImage, created_at as date FROM payments');
-        response(true, ['payments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
-        break;
+        case 'getPayments':
+            $stmt = $db->query('SELECT id, invoice_id as invoiceId, amount, payment_method as paymentMethod, proof_image as proofImage, created_at as date FROM payments');
+            response(true, ['payments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
 
-    case 'getExpenses':
-        $stmt = $db->query('SELECT id, outlet_id as outletId, amount, category, description, date FROM expenses');
-        response(true, ['expenses' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
-        break;
+        case 'getExpenses':
+            $stmt = $db->query('SELECT id, outlet_id as outletId, amount, category, description, date FROM expenses');
+            response(true, ['expenses' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
 
-    case 'addExpense':
-        $ex = json_decode($_REQUEST['expense'] ?? '{}', true);
-        $stmt = $db->prepare('INSERT INTO expenses (id, outlet_id, amount, category, description, date) VALUES (?, ?, ?, ?, ?, ?)');
-        try {
+        case 'addExpense':
+            $ex = json_decode($_REQUEST['expense'] ?? '{}', true);
+            $stmt = $db->prepare('INSERT INTO expenses (id, outlet_id, amount, category, description, date) VALUES (?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $ex['id'] ?? (string)time(),
                 $ex['outletId'] ?? null,
                 $ex['amount'] ?? 0,
                 $ex['category'] ?? 'Lainnya',
                 $ex['description'] ?? '',
-                substr($ex['date'], 0, 10) // Only take YYYY-MM-DD
+                substr($ex['date'], 0, 10)
             ]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Add expense failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    case 'deleteExpense':
-        $id = $_REQUEST['expenseId'] ?? '';
-        try {
-            $db->prepare('DELETE FROM expenses WHERE id = ?')->execute([$id]);
+        case 'deleteExpense':
+            $id = $_REQUEST['expenseId'] ?? '';
+            $db->prepare('DELETE FROM expenses WHERE id = ?')->execute([id]);
             response(true);
-        } catch (Exception $e) {
-            response(false, [], 'Delete expense failed: ' . $e->getMessage());
-        }
-        break;
+            break;
 
-    default:
-        response(false, [], 'Unknown action');
+        default:
+            response(false, [], 'Unknown action: ' . $action);
+    }
+} catch (Exception $e) {
+    response(false, [], 'Server Error: ' . $e->getMessage());
 }
