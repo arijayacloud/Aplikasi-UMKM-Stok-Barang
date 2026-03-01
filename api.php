@@ -6,11 +6,10 @@ require_once 'config.php';
 $action = $_POST['action'] ?? $_GET['action'] ?? null;
 
 function response($success, $data = [], $message = '') {
-    echo json_encode(array_filter([
+    echo json_encode(array_merge([
         'success' => $success,
-        'message' => $message,
-        ...$data
-    ]));
+        'message' => $message
+    ], $data));
     exit;
 }
 
@@ -141,6 +140,18 @@ switch ($action) {
         }
         break;
 
+    case 'deleteOutletStock':
+        $outletId = $_REQUEST['outletId'] ?? '';
+        $productId = $_REQUEST['productId'] ?? '';
+        try {
+            $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ? AND product_id = ?')
+               ->execute([$outletId, $productId]);
+            response(true);
+        } catch (Exception $e) {
+            response(false, [], 'Delete outlet stock failed: ' . $e->getMessage());
+        }
+        break;
+
     case 'getInvoices':
         $stmt = $db->query('SELECT id, outlet_id as outletId, total_amount as totalAmount, is_paid as isPaid, created_at as date FROM invoices');
         $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -221,6 +232,7 @@ switch ($action) {
         $proofImage = $_REQUEST['proofImage'] ?? null;
         $lat = $_REQUEST['latitude'] ?? null;
         $lng = $_REQUEST['longitude'] ?? null;
+        $address = $_REQUEST['address'] ?? null;
         $fileName = null;
 
         if ($proofImage) {
@@ -235,8 +247,8 @@ switch ($action) {
         }
 
         try {
-            $stmt = $db->prepare('UPDATE consignments SET status = "received", proof_image = ?, latitude = ?, longitude = ?, received_at = NOW() WHERE id = ?');
-            $stmt->execute([$fileName, $lat, $lng, $consignmentId]);
+            $stmt = $db->prepare('UPDATE consignments SET status = "received", proof_image = ?, latitude = ?, longitude = ?, address = ?, received_at = NOW() WHERE id = ?');
+            $stmt->execute([$fileName, $lat, $lng, $address, $consignmentId]);
             response(true);
         } catch (Exception $e) {
             response(false, [], 'Receive stock failed: ' . $e->getMessage());
@@ -270,7 +282,7 @@ switch ($action) {
         break;
 
     case 'getConsignments':
-        $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, created_at as date FROM consignments');
+        $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, proof_image as proofImage, latitude, longitude, address, received_at as receivedAt, created_at as date FROM consignments');
         response(true, ['consignments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
         break;
 
