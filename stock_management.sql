@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Mar 02, 2026 at 02:31 AM
+-- Generation Time: Mar 02, 2026 at 02:32 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -174,14 +174,6 @@ CREATE TABLE `users` (
   `outletId` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `outletId`, `created_at`) VALUES
-('177170894172', 'gagak', 'admin@admin.com', '$2y$10$p9uZy4QGWVKMfEPVI32dt.csWeKKwYTfyvHiXNUYQ0GNEPVqkb1..', 'admin', NULL, '2026-02-21 21:22:21'),
-('177241688731', 'test', 'test@test.com', '$2y$10$6Z8Pu8ASeFZ.LaGZPIOSReWwRWp9sXPN7/HXHghPuaWJyDbUI8nFu', 'outlet', '1772416853494', '2026-03-02 02:01:27');
 
 --
 -- Indexes for dumped tables
