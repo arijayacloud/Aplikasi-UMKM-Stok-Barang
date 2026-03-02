@@ -85,6 +85,7 @@ try {
             $id = $_REQUEST['outletId'] ?? '';
             $db->prepare('DELETE FROM consignments WHERE outlet_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ?')->execute([$id]);
+            $db->prepare('DELETE FROM users WHERE outletId = ?')->execute([$id]);
             $db->prepare('DELETE FROM outlets WHERE id = ?')->execute([$id]);
             response(true);
             break;
