@@ -83,6 +83,8 @@ try {
 
         case 'deleteOutlet':
             $id = $_REQUEST['outletId'] ?? '';
+            $db->prepare('DELETE FROM consignments WHERE outlet_id = ?')->execute([$id]);
+            $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM outlets WHERE id = ?')->execute([$id]);
             response(true);
             break;
@@ -108,6 +110,7 @@ try {
 
         case 'deleteProduct':
             $id = $_REQUEST['productId'] ?? '';
+            $db->prepare('DELETE FROM consignments WHERE product_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM outlet_stock WHERE product_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM products WHERE id = ?')->execute([$id]);
             response(true);
@@ -218,7 +221,7 @@ try {
             break;
 
         case 'getPayments':
-            $stmt = $db->query('SELECT id, invoice_id as invoiceId, amount, payment_method as paymentMethod, proof_image as proofImage, created_at as date FROM payments');
+            $stmt = $db->query('SELECT id, invoice_id as invoiceId, amount, created_at as date FROM payments');
             response(true, ['payments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
             break;
 
@@ -243,7 +246,7 @@ try {
 
         case 'deleteExpense':
             $id = $_REQUEST['expenseId'] ?? '';
-            $db->prepare('DELETE FROM expenses WHERE id = ?')->execute([id]);
+            $db->prepare('DELETE FROM expenses WHERE id = ?')->execute([$id]);
             response(true);
             break;
 
