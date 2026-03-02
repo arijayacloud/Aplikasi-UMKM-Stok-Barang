@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Feb 28, 2026 at 01:36 PM
+-- Generation Time: Mar 02, 2026 at 02:31 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -33,7 +33,7 @@ CREATE TABLE `consignments` (
   `product_id` varchar(255) NOT NULL,
   `quantity` int DEFAULT '0',
   `status` enum('sent','received','returned') DEFAULT 'sent',
-  `notes` text DEFAULT NULL,
+  `notes` text,
   `sender_name` varchar(255) DEFAULT NULL,
   `receiver_name` varchar(255) DEFAULT NULL,
   `received_at` timestamp NULL DEFAULT NULL,
@@ -98,6 +98,13 @@ CREATE TABLE `outlets` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `outlets`
+--
+
+INSERT INTO `outlets` (`id`, `name`, `address`, `created_at`) VALUES
+('1772416853494', 'test', 'test', '2026-03-02 02:00:53');
+
 -- --------------------------------------------------------
 
 --
@@ -109,6 +116,13 @@ CREATE TABLE `outlet_stock` (
   `product_id` varchar(255) NOT NULL,
   `quantity` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `outlet_stock`
+--
+
+INSERT INTO `outlet_stock` (`outlet_id`, `product_id`, `quantity`) VALUES
+('1772416853494', '1772415525032', 50);
 
 -- --------------------------------------------------------
 
@@ -138,6 +152,13 @@ CREATE TABLE `products` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`id`, `name`, `category`, `stockPusat`, `price`, `created_at`) VALUES
+('1772415525032', 'Ram', 'Storage', 100, 500000, '2026-03-02 01:38:45');
+
 -- --------------------------------------------------------
 
 --
@@ -159,19 +180,12 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `outletId`, `created_at`) VALUES
-('177170894172', 'gagak', 'admin@admin.com', '$2y$10$p9uZy4QGWVKMfEPVI32dt.csWeKKwYTfyvHiXNUYQ0GNEPVqkb1..', 'admin', NULL, '2026-02-21 21:22:21');
+('177170894172', 'gagak', 'admin@admin.com', '$2y$10$p9uZy4QGWVKMfEPVI32dt.csWeKKwYTfyvHiXNUYQ0GNEPVqkb1..', 'admin', NULL, '2026-02-21 21:22:21'),
+('177241688731', 'test', 'test@test.com', '$2y$10$6Z8Pu8ASeFZ.LaGZPIOSReWwRWp9sXPN7/HXHghPuaWJyDbUI8nFu', 'outlet', '1772416853494', '2026-03-02 02:01:27');
 
 --
 -- Indexes for dumped tables
 --
-
---
--- Indexes for table `consignments`
---
-ALTER TABLE `consignments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `outlet_id` (`outlet_id`),
-  ADD KEY `product_id` (`product_id`);
 
 --
 -- Indexes for table `expenses`
@@ -241,13 +255,6 @@ ALTER TABLE `invoice_items`
 --
 -- Constraints for dumped tables
 --
-
---
--- Constraints for table `consignments`
---
-ALTER TABLE `consignments`
-  ADD CONSTRAINT `consignments_ibfk_1` FOREIGN KEY (`outlet_id`) REFERENCES `outlets` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `consignments_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `expenses`
