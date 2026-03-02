@@ -181,25 +181,12 @@ try {
 
         case 'receiveStock':
             $consignmentId = $_REQUEST['consignmentId'] ?? '';
-            $proofImage = $_REQUEST['proofImage'] ?? null;
-            $lat = $_REQUEST['latitude'] ?? null;
-            $lng = $_REQUEST['longitude'] ?? null;
-            $address = $_REQUEST['address'] ?? null;
-            $fileName = null;
+            $notes = $_REQUEST['notes'] ?? null;
+            $senderName = $_REQUEST['senderName'] ?? null;
+            $receiverName = $_REQUEST['receiverName'] ?? null;
 
-            if ($proofImage) {
-                if (!is_dir('uploads')) {
-                    mkdir('uploads', 0777, true);
-                }
-                $dateStr = date('Ymd_His');
-                $fileName = 'buktircv_' . $dateStr . '.jpg';
-                $filePath = 'uploads/' . $fileName;
-                $data = base64_decode($proofImage);
-                file_put_contents($filePath, $data);
-            }
-
-            $stmt = $db->prepare('UPDATE consignments SET status = "received", proof_image = ?, latitude = ?, longitude = ?, address = ?, received_at = NOW() WHERE id = ?');
-            $stmt->execute([$fileName, $lat, $lng, $address, $consignmentId]);
+            $stmt = $db->prepare('UPDATE consignments SET status = "received", notes = ?, sender_name = ?, receiver_name = ?, received_at = NOW() WHERE id = ?');
+            $stmt->execute([$notes, $senderName, $receiverName, $consignmentId]);
             response(true);
             break;
 
@@ -226,7 +213,7 @@ try {
             break;
 
         case 'getConsignments':
-            $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, proof_image as proofImage, latitude, longitude, address, received_at as receivedAt, created_at as date FROM consignments');
+            $stmt = $db->query('SELECT id, outlet_id as outletId, product_id as productId, quantity, status, notes, sender_name as senderName, receiver_name as receiverName, received_at as receivedAt, created_at as date FROM consignments');
             response(true, ['consignments' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
             break;
 

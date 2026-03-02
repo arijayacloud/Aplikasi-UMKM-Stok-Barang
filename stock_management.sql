@@ -33,11 +33,11 @@ CREATE TABLE `consignments` (
   `product_id` varchar(255) NOT NULL,
   `quantity` int DEFAULT '0',
   `status` enum('sent','received','returned') DEFAULT 'sent',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `proof_image` varchar(255) DEFAULT NULL,
-  `latitude` decimal(10,8) DEFAULT NULL,
-  `longitude` decimal(11,8) DEFAULT NULL,
-  `received_at` timestamp NULL DEFAULT NULL
+  `notes` text DEFAULT NULL,
+  `sender_name` varchar(255) DEFAULT NULL,
+  `receiver_name` varchar(255) DEFAULT NULL,
+  `received_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
