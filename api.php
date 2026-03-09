@@ -46,7 +46,7 @@ try {
             break;
 
         case 'getOutlets':
-            $stmt = $db->query('SELECT id, name, address FROM outlets');
+            $stmt = $db->query('SELECT id, name, address, phone FROM outlets');
             $outlets = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($outlets as &$outlet) {
                 $stmtStock = $db->prepare('SELECT product_id, quantity FROM outlet_stock WHERE outlet_id = ?');
@@ -62,15 +62,15 @@ try {
 
         case 'addOutlet':
             $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
-            $stmt = $db->prepare('INSERT INTO outlets (id, name, address) VALUES (?, ?, ?)');
-            $stmt->execute([$outlet['id'], $outlet['name'], $outlet['address'] ?? '']);
+            $stmt = $db->prepare('INSERT INTO outlets (id, name, address, phone) VALUES (?, ?, ?, ?)');
+            $stmt->execute([$outlet['id'], $outlet['name'], $outlet['address'] ?? '', $outlet['phone'] ?? '']);
             response(true);
             break;
 
         case 'updateOutlet':
             $outlet = json_decode($_REQUEST['outlet'] ?? '{}', true);
-            $stmt = $db->prepare('UPDATE outlets SET name = ?, address = ? WHERE id = ?');
-            $stmt->execute([$outlet['name'], $outlet['address'] ?? '', $outlet['id']]);
+            $stmt = $db->prepare('UPDATE outlets SET name = ?, address = ?, phone = ? WHERE id = ?');
+            $stmt->execute([$outlet['name'], $outlet['address'] ?? '', $outlet['phone'] ?? '', $outlet['id']]);
             if (isset($outlet['stock'])) {
                 $db->prepare('DELETE FROM outlet_stock WHERE outlet_id = ?')->execute([$outlet['id']]);
                 foreach ($outlet['stock'] as $productId => $qty) {
@@ -126,7 +126,7 @@ try {
             break;
 
         case 'getInvoices':
-            $stmt = $db->query('SELECT id, outlet_id as outletId, total_amount as totalAmount, is_paid as isPaid, created_at as date FROM invoices');
+            $stmt = $db->query('SELECT id, outlet_id as outletId, total_amount as totalAmount, is_paid as isPaid, created_at as date, customer_name as customerName, customer_address as customerAddress, sales_person_id as salesPersonId, sales_person_name as salesPersonName FROM invoices ORDER BY created_at DESC');
             $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($invoices as &$inv) {
                 $inv['isPaid'] = (bool)$inv['isPaid'];
@@ -207,8 +207,13 @@ try {
             
             $invId = 'INV-' . (string)time();
             $totalAmount = ($prod['price'] ?? 0) * $qty;
-            $db->prepare('INSERT INTO invoices (id, outlet_id, total_amount, is_paid) VALUES (?, ?, ?, 0)')
-                ->execute([$invId, $outletId, $totalAmount]);
+            $customerName = $_REQUEST['customerName'] ?? null;
+            $customerAddress = $_REQUEST['customerAddress'] ?? null;
+            $salesPersonId = $_REQUEST['salesPersonId'] ?? null;
+            $salesPersonName = $_REQUEST['salesPersonName'] ?? null;
+
+            $stmt = $db->prepare('INSERT INTO invoices (id, outlet_id, total_amount, is_paid, customer_name, customer_address, sales_person_id, sales_person_name) VALUES (?, ?, ?, 0, ?, ?, ?, ?)');
+            $stmt->execute([$invId, $outletId, $totalAmount, $customerName, $customerAddress, $salesPersonId, $salesPersonName]);
             
             $db->prepare('INSERT INTO invoice_items (invoice_id, product_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$invId, $productId, $prod['name'] ?? '', $qty, $prod['price'] ?? 0]);

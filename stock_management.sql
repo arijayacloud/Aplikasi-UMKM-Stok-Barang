@@ -67,6 +67,10 @@ CREATE TABLE `invoices` (
   `outlet_id` varchar(255) NOT NULL,
   `total_amount` int DEFAULT '0',
   `is_paid` tinyint(1) DEFAULT '0',
+  `customer_name` varchar(255) DEFAULT NULL,
+  `customer_address` text DEFAULT NULL,
+  `sales_person_id` varchar(50) DEFAULT NULL,
+  `sales_person_name` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -95,6 +99,7 @@ CREATE TABLE `outlets` (
   `id` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
   `address` text,
+  `phone` varchar(50) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
